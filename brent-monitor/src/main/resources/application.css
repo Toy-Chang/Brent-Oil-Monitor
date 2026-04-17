@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  application.css — Brent Monitor 界面样式
+  JavaFX CSS 支持标准 CSS 语法子集
+-->
+.root {
+    -fx-background-color: #1e1e2e;
+    -fx-font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 13px;
+}
+
+.label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.button {
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.button:hover {
+    -fx-opacity: 0.85;
+}
+
+.button:pressed {
+    -fx-opacity: 0.7;
+}
+
+.table-view {
+    -fx-background-color: #252535;
+    -fx-control-inner-background: #252535;
+    -fx-table-cell-border-color: #3a3a4e;
+    -fx-table-header-border-color: #3a3a4e;
+    -fx-selection-bar: #4a4a6e;
+    -fx-selection-bar-non-focused: #3a3a5e;
+}
+
+.table-view .column-header {
+    -fx-background-color: #2a2a3e;
+    -fx-text-fill: #00d4ff;
+    -fx-font-weight: bold;
+    -fx-border-color: #3a3a4e;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: #d0d0d0;
+    -fx-border-color: #2a2a3e;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: #3a3a5e;
+}
+
+.check-box .box {
+    -fx-background-color: #3a3a4e;
+    -fx-border-color: #5a5a7e;
+    -fx-border-radius: 3;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #27ae60;
+    -fx-border-color: #27ae60;
+}
+
+.separator .line {
+    -fx-border-color: #3a3a4e;
+}
+
+.progress-indicator {
+    -fx-progress-color: #00d4ff;
+}

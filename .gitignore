@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Java
+target/
+*.log
+
+# IDE
+.idea/
+*.iml
+
+# build output（默认忽略整个 dist）
+dist/*
+
+# 只允许 dmg 文件上传
+!dist/BrentMonitor.dmg
