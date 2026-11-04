@@ -5,7 +5,7 @@ import com.brentmonitor.fetcher.FetcherRunner;
 import com.brentmonitor.fetcher.NewsFetcher;
 import com.brentmonitor.fetcher.impl.BloombergNewsFetcher;
 import com.brentmonitor.fetcher.impl.FXEmpireNewsFetcher;
-import com.brentmonitor.fetcher.impl.ReutersNewsFetcher;
+import com.brentmonitor.fetcher.impl.OilPriceNewsFetcher;
 import com.brentmonitor.model.MonitorStats;
 import com.brentmonitor.model.NewsItem;
 import com.brentmonitor.processor.NewsProcessor;
@@ -68,7 +68,7 @@ public final class MonitorScheduler {
             Runtime.getRuntime().availableProcessors());
 
         // 注册 3 个新闻源
-        fetcherRunner.registerFetcher(new ReutersNewsFetcher());
+        fetcherRunner.registerFetcher(new OilPriceNewsFetcher());
         fetcherRunner.registerFetcher(new BloombergNewsFetcher());
         fetcherRunner.registerFetcher(new FXEmpireNewsFetcher());
 

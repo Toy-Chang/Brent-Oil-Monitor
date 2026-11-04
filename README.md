@@ -4,7 +4,7 @@
 
 A macOS desktop application built with Java 17 + JavaFX that monitors Brent crude oil news every 30 seconds, demonstrating real-world concurrent programming patterns for technical interviews.
 
-每 30 秒自动抓取多家新闻源（Reuters、Bloomberg、FX Empire）的布伦特原油相关新闻，通过 JavaFX 实时展示，完整展示生产级并发编程架构。
+每 30 秒自动抓取多家公开 RSS 新闻源（OilPrice.com、Bloomberg、FX Empire）的能源市场新闻，通过 JavaFX 筛选并实时展示布伦特原油相关新闻，完整展示生产级并发编程架构。
 
 ---
 
@@ -12,7 +12,7 @@ A macOS desktop application built with Java 17 + JavaFX that monitors Brent crud
 
 Brent Oil Monitor automatically fetches news from multiple sources every 30 seconds, filters for Brent crude oil related content, and displays results in a real-time GUI. The application is designed to showcase production-grade concurrency architecture.
 
-布伦特原油监控系统每 30 秒自动从 Reuters（路透社）、Bloomberg（彭博）、FX Empire 三家新闻源抓取布伦特原油相关新闻，经过去重、过滤后通过 JavaFX 图形界面实时展示。应用专为技术面试设计，展示生产级并发编程能力。
+布伦特原油监控系统每 30 秒自动从 OilPrice.com、Bloomberg（彭博）、FX Empire 三家公开 RSS 新闻源抓取能源市场新闻，经过去重和布伦特关键词过滤后通过 JavaFX 图形界面实时展示。应用专为技术面试设计，展示生产级并发编程能力。
 
 
 ## Highlights | 项目亮点
@@ -59,7 +59,7 @@ Brent Oil Monitor automatically fetches news from multiple sources every 30 seco
 │    (Producer Side)       │       │     (Consumer Side)      │
 │                         │       │                          │
 │  ThreadPoolExecutor(3)   │       │  FixedThreadPool(n)      │
-│   └─ Reuters Fetcher     │       │   └─ consumeLoop()       │
+│   └─ OilPrice Fetcher    │       │   └─ consumeLoop()       │
 │   └─ Bloomberg Fetcher   │ ───▶  │                          │
 │   └─ FXEmpire Fetcher   │ QUEUE │  Keyword Filter           │
 │                         │       │  Deduplication            │
@@ -173,7 +173,7 @@ com.brentmonitor/
 ├── model/           # 数据模型（NewsItem, MonitorStats）
 ├── scheduler/        # ScheduledExecutorService 调度编排
 ├── fetcher/          # NewsFetcher 接口 + 3 个实现
-│   └── impl/        # Reuters, Bloomberg, FXEmpire（模拟数据源）
+│   └── impl/        # OilPrice.com、Bloomberg、FX Empire 公开 RSS 数据源
 ├── queue/            # ArrayBlockingQueue 共享缓冲区
 ├── processor/        # Consumer：过滤、去重、统计
 ├── cache/            # DeduplicationCache（ConcurrentHashMap）
@@ -185,7 +185,7 @@ com.brentmonitor/
 
 1. **Scheduler** 每 30 秒触发 `scheduleAtFixedRate`
 2. **FetcherRunner** 向 ThreadPoolExecutor 提交 3 个并发抓取任务
-3. 每个 **Fetcher** 获取限流器 token，模拟网络 I/O 延迟，返回 `List<NewsItem>`
+3. 每个 **Fetcher** 获取限流器 token，通过带超时的 HTTP 请求读取并解析 RSS，返回 `List<NewsItem>`
 4. 数据条目放入 **BlockingQueue**（队列满时阻塞 = 背压）
 5. **NewsProcessor** 消费者调用 `take()` 取数据（队列空时阻塞）
 6. 每个 processor 检查 **DeduplicationCache**（CAS，O(1)）
@@ -328,7 +328,7 @@ Brent-Demo-New/
 │       │   ├── NewsFetcher.java
 │       │   ├── FetcherRunner.java
 │       │   └── impl/
-│       │       ├── ReutersNewsFetcher.java
+│       │       ├── OilPriceNewsFetcher.java
 │       │       ├── BloombergNewsFetcher.java
 │       │       └── FXEmpireNewsFetcher.java
 │       ├── queue/

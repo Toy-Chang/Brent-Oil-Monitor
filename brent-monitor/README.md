@@ -18,7 +18,7 @@ src/main/java/com/brentmonitor/
 │   ├── NewsFetcher.java         # 新闻抓取器接口
 │   ├── FetcherRunner.java       # 生产者：提交抓取任务
 │   └── impl/
-│       ├── ReutersNewsFetcher.java
+│       ├── OilPriceNewsFetcher.java
 │       ├── BloombergNewsFetcher.java
 │       └── FXEmpireNewsFetcher.java
 ├── queue/
