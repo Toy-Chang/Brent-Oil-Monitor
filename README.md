@@ -14,6 +14,8 @@ Brent Oil Monitor fetches news from three RSS feeds in parallel every 30 seconds
 
 布伦特原油监控系统每 30 秒并发抓取 OilPrice.com、Bloomberg、FX Empire 三个 RSS 源，经过去重和布伦特关键词过滤后，在 JavaFX 表格中实时展示。应用启动后自动开始监控。
 
+> **项目来源**：本项目起源于 UOACS x DEVS Hackathon 2026 期间的开发。比赛期间版本的新闻内容为演示数据，之后改为接入三个真实 RSS 源。
+
 ## Highlights | 项目亮点
 
 - **Scheduled concurrent fetching** (ScheduledExecutorService every 30 s; 3 sources fetched in parallel with ThreadPoolExecutor + CompletableFuture)  
@@ -178,7 +180,8 @@ public boolean isDuplicate(String contentHash) {
 - **场景：** 多个消费者线程同时更新统计、判断新闻是否重复
 - **机制：** `AtomicInteger / AtomicLong / AtomicBoolean` 基于 CAS（比较并交换），失败则重试，用于统计计数、新闻 ID、令牌计数和调度器运行状态；`putIfAbsent` 是原子的"不存在才插入"，返回非 null 表示已存在
 - **价值：** 单变量的计数与状态更新无需 `synchronized`；避免"先 `get` 再 `put`"带来的竞态，两个线程不会同时把同一条新闻当作新数据
-- 去重指纹为新闻内容的 `String.hashCode()`，缓存保存在进程内存中
+- 去重指纹为新闻内容的 `String.hashCode()`，缓存保存在进程内存中。
+- **局限**：`hashCode` 只有 32 位，不同内容可能产生相同指纹，被误判为重复；缓存随进程退出而清空，重启后会重新展示旧新闻。如需更严格，可改用内容的 SHA-256 摘要或以新闻链接作键，并为缓存加过期策略。
 
 ### 6. Platform.runLater — UI 线程调度
 
@@ -372,7 +375,7 @@ jpackage \
 > "CAS 是比较并交换：读取当前值，只有它等于预期值才写入，否则重试，由 CPU 原子指令保证。`AtomicInteger` 适合单个变量的计数和状态更新，不需要加锁，也没有线程挂起的开销。我用它做统计计数，用 `AtomicLong` 生成新闻 ID，用 `AtomicBoolean` 管理调度器状态。多个变量需要保持一致时，CAS 就不够了，需要用锁。"
 
 ### 7. 去重为什么用 putIfAbsent？
-> "多个消费者线程并发处理新闻。如果先 `get` 再 `put`，两个线程可能同时发现'不存在'，把同一条新闻都当成新数据。`ConcurrentHashMap.putIfAbsent` 把检查和插入合成一个原子操作，返回 null 表示是新内容，非 null 表示重复。指纹用的是内容的 `hashCode()`，实现简单。"
+> "多个消费者线程并发处理新闻。如果先 `get` 再 `put`，两个线程可能同时发现'不存在'，把同一条新闻都当成新数据。`ConcurrentHashMap.putIfAbsent` 把检查和插入合成一个原子操作，返回 null 表示是新内容，非 null 表示重复。指纹用的是内容的 `hashCode()`，实现简单；局限是 32 位哈希可能碰撞，且缓存只在内存，重启后清空。如需更严格，改用内容摘要或链接作键，并加过期策略。"
 
 ### 8. JavaFX 里为什么要用 Platform.runLater？
 > "JavaFX 场景图不是线程安全的，只能在 Application Thread 上访问。抓取和处理都在后台线程，产生的新闻和统计通过 `Platform.runLater()` 提交到 UI 线程执行，TableView 的 `ObservableList` 只在 UI 线程上修改。这样既不阻塞界面，也不会在非 UI 线程直接操作控件。"
@@ -431,6 +434,19 @@ Brent-Oil-Monitor/
 
 ---
 
+## Testing & Known Limitations / 测试与已知限制
+
+- **测试**：项目没有自动化测试，构建命令使用 `-DskipTests`。功能通过本地运行应用手工验证。
+- **线程池上限**：抓取线程池 core 3 / max 6，使用 `SynchronousQueue`。每轮只提交 3 个抓取任务，core 为 3，所以实际线程数不会超过 3；`max 6` 是上限余量。
+- **拒绝策略**：线程池饱和时只打印日志，任务不重试。
+- **入队超时丢弃**：队列满时 `offer(item, 1s)` 超时的条目被丢弃。这是有界缓冲，不是严格背压；严格背压需改用 `put()`。
+- **并发数控制**：`TokenBucketRateLimiter` 中生效的是 Semaphore（3 个许可），限制同时抓取数；它不是 QPS 限流。
+- **去重**：指纹为 `hashCode()`，存在碰撞可能，缓存只在内存（见并发设计 §5）。
+- **价格列**：RSS 源不提供价格，该列为占位值。
+- **外部依赖**：新闻源由第三方网站提供，可用性与内容格式由对方决定。
+
+---
+
 ## Configuration / 配置说明
 
 参数直接写在源码中，修改后重新构建即可：
@@ -439,7 +455,7 @@ Brent-Oil-Monitor/
 |------------------|-----------------|---------------|
 | 抓取间隔、首次延迟（秒） | `MonitorUI.start()`：`new MonitorScheduler(30, 3)` | 30、3 |
 | 队列容量 | `MonitorScheduler`：`new NewsItemQueue(100)` | 100 |
-| 最大并发抓取数、令牌补充速率 | `MonitorScheduler`：`new FetcherRunner(queue, 3, 10)` | 3、10 |
+| 最大并发抓取数（生效）、令牌补充速率（预留参数，不参与阻塞） | `MonitorScheduler`：`new FetcherRunner(queue, 3, 10)` | 3、10 |
 | 消费者线程数 | `MonitorScheduler`：`Runtime.getRuntime().availableProcessors()` | CPU 核数 |
 | 关键词 | `NewsProcessor.BRENT_KEYWORDS` | 见上文 |
 | 界面最大显示条数 | `MonitorUI.setupCallbacks()` | 200 |
